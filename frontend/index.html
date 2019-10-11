@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Cart</title>
+    <meta name="author" content="Igor Suckharev">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  </head>
+  <body>
+    <div style="padding:1em; display:flex; justify-content:center; align-items:baseline;">
+      <h1>Shopping Cart&nbsp;</h1>
+      <em>by Igor Sukharev</em>
+    </div>
+    <div id="root"></div>
+    <script type="text/babel">
+
+      const trimNumber = str => str.replace(/\s+/g, '');
+
+      const InputField = ({label, children, error}) => (
+        <div style={{padding: '.5em'}}>
+          <label style={{display: 'inline-block', width: '5em', textAlign: 'right'}}>{label}&nbsp;</label>
+          {children}
+          {error && <div style={{color: 'red', marginLeft: '5em'}}><em>{error}</em></div>}
+        </div>
+      );
+
+      class CartEditor extends  React.Component {
+        state = {};
+        handleChange = ({target: {name, value}}) => this.setState({[name]: value});
+        handleSubmit = event => {
+          event.preventDefault();
+          let errors = 0;
+          const {name = '', quantity = '', currency = 'RUB', price = ''} = this.state;
+          // validate:
+          const _q = + trimNumber(quantity);
+          const _p = + trimNumber(price);
+          this.setState({
+            nameError: name.trim() ? '' : (errors ++, 'not name'),
+            quantityError: /^\d+$/.test(quantity) && _q > 0 && _q < 1000 ? '' : (errors ++, 'not 0 < integer > 1000'),
+            priceError: /^\d*(?:\.\d{1,2})?$/.test(price) && _p > 0 && _p < 1000000 ? '' : (errors ++, 'not 0.00 < price > 1000000.00'),
+          });
+          // save:
+          if (! errors) this.props.addItem({name, quantity: _q, currency, price: _p});
+        };
+        render () {
+          const {addItem} = this.props;
+          const {
+            name = '', quantity = '', currency = 'RUB', price = '',
+            nameError, quantityError, priceError,
+          } = this.state;
+          return (
+            <form onSubmit={this.handleSubmit}>
+              <fieldset>
+                <legend>Add Item</legend>
+                <InputField label="name" error={nameError}>
+                  <input name="name" value={name} onChange={this.handleChange} />
+                </InputField>
+                <InputField label="quantity" error={quantityError}>
+                  <input name="quantity" value={quantity} onChange={this.handleChange} />
+                </InputField>
+                <InputField label="currency">
+                  <select name="currency" value={currency} onChange={this.handleChange}>
+                    <option>RUB</option>
+                    <option>USD</option>
+                    <option>EUR</option>
+                  </select>
+                </InputField>
+                <InputField label="price" error={priceError}>
+                  <input name="price" value={price} onChange={this.handleChange} />
+                </InputField>
+                <InputField><button>Add item</button></InputField>
+              </fieldset>
+            </form>
+          );
+        }
+      }
+
+      class Cart extends  React.Component {
+        state = {
+          items: [
+            {name: 'pants', quantity: 1, currency: 'RUB', price: 3000},
+            {name: 'socks', quantity: 2, currency: 'EUR', price: 5},
+            {name: 'tshirt', quantity: 3, currency: 'USD', price: 10},
+          ],
+          prices: {},
+          loading: false
+        };
+        addItem = i => this.setState(({items}) => ({items: [...items, i]}));
+        clearItems = () => {
+          if (window.confirm('Do you really want to erase all data?'))
+            this.setState({items: []});
+        }
+        requestPrices = () => {
+          const {items} = this.state;
+          if (items.length) {
+            this.setState({loading: true});
+            fetch('http://localhost:3210', {
+              method: 'POST',
+              headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+              body: JSON.stringify(items)
+            })
+            .then(r => r.json())
+            .then(
+              prices => this.setState({prices, loading: false}),
+              error => this.setState({error, loading: false})
+            );
+          }
+        }
+        render () {
+          const {items, prices: {RUB, EUR, USD}} = this.state;
+          return (
+            <article style={{display: 'flex'}}>
+              <section style={{width: '22em'}}>
+                <fieldset>
+                  <legend>Cart</legend>
+                  <div style={{display: 'flex'}}>
+                    <div style={{width: '9em'}}>
+                      <p>Items: {items.length}</p>
+                      <button onClick={this.clearItems}>Clear Cart</button>
+                    </div>
+                    <div>
+                      <p>Prices:</p>
+                      <div>RUB: {RUB}</div>
+                      <div>EUR: {EUR}</div>
+                      <div>USD: {USD}</div>
+                      <br />
+                      <button onClick={this.requestPrices}>Request Prices</button>
+                    </div>
+                  </div>
+                </fieldset>
+                <br />
+                <CartEditor key={items.length} addItem={this.addItem} />
+              </section>
+              <fieldset style={{flexGrow: 1}}>
+                <legend>Cart Items</legend>
+                <section style={{display: 'flex', flexWrap: 'wrap'}}>
+                  {items.map(({name, quantity, currency, price}, index) => 
+                    <article key={index} style={{margin: '.3em', border: '1px solid silver', padding: '.3em'}}>
+                      <div>name: {name}</div>
+                      <div>quantity: {quantity}</div>
+                      <div>currency: {currency}</div>
+                      <div>price: {price}</div>
+                    </article>
+                  )}
+                </section>
+              </fieldset>
+            </article>
+          );
+        }
+      }
+
+      ReactDOM.render(<Cart />, document.getElementById('root'));
+    </script>
+  </body>
+</html>

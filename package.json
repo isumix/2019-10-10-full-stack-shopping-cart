@@ -1,0 +1,20 @@
+{
+  "name": "2019-10-10-full-stack-shopping-cart",
+  "version": "1.0.0",
+  "description": "Тестовое задание JS Full-Stack",
+  "main": "backend/index.js",
+  "scripts": {
+    "start": "open-cli http://localhost:3210 && nodemon --watch backend backend/server.js"
+  },
+  "keywords": [],
+  "author": "Igor Sukharev",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "request": "^2.88.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.3",
+    "open-cli": "^5.0.0"
+  }
+}
